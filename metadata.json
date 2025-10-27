@@ -1,0 +1,7 @@
+{
+  "name": "Smart Portion & Inventory",
+  "description": "An application to help users complete their profile to get personalized meal plans, manage food inventory, and reduce food waste.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

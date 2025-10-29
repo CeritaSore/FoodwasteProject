@@ -1,7 +1,7 @@
 import React, { ChangeEvent } from 'react';
 
 // FIX: Added 'required' to the component's props to allow the 'required' attribute on the input element.
-const InputField: React.FC<{ label: string; id: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; type?: 'text' | 'number'; placeholder?: string; required?: boolean; }> = ({ label, id, ...props }) => (
+const InputField: React.FC<{ label: string; id: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; type?: 'text' | 'number'|'date'; placeholder?: string; required?: boolean; }> = ({ label, id, ...props }) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
     <input

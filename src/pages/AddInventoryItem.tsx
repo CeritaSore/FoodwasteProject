@@ -13,14 +13,17 @@ interface AddInventoryItemProps {
 
 const API_URL = "http://fajarseptianto.my.id/api/items/inventory";
 
-const AddInventoryItem: React.FC<AddInventoryItemProps> = ({ onBack, itemId }) => {
+const AddInventoryItem: React.FC<AddInventoryItemProps> = ({
+  onBack,
+  itemId,
+}) => {
   const isEditMode = !!itemId;
 
   const [item, setItem] = useState({
     name: "",
-    store_at: "Chiller",
+    store_at: "chiller",
     weight: "",
-    unit: "Kilogram",
+    unit: "kilogram",
     expired_at: "",
     photo: "",
   });
@@ -58,7 +61,9 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({ onBack, itemId }) =
   }, [isEditMode, itemId]);
 
   // 🔹 Handle input perubahan
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setItem((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -83,7 +88,8 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({ onBack, itemId }) =
         alert("Data berhasil diperbarui!");
       } else {
         await axios.post(API_URL, item);
-        alert("Data berhasil disimpan!");
+        // alert("Data berhasil disimpan!");
+        console.log(item);
       }
       onBack();
     } catch (error) {
@@ -134,9 +140,9 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({ onBack, itemId }) =
             value={item.store_at}
             onChange={handleChange}
           >
-            <option>Freezer</option>
-            <option>Chiller</option>
-            <option>Suhu ruang</option>
+            <option value="freezer">Freezer</option>
+            <option value="chiller">Chiller</option>
+            <option value="room_temperature">Suhu Ruang</option>
           </SelectField>
 
           <div className="grid grid-cols-2 gap-4">
@@ -149,18 +155,23 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({ onBack, itemId }) =
               required
             />
 
-            <SelectField label="Satuan" id="unit" value={item.unit} onChange={handleChange}>
-              <option>Kilogram</option>
-              <option>Gram</option>
-              <option>Liter</option>
-              <option>Buah</option>
+            <SelectField
+              label="Satuan"
+              id="unit"
+              value={item.unit}
+              onChange={handleChange}
+            >
+              <option value="kilogram">Kilogram</option>
+              <option value="gram">Gram</option>
+              <option value="liter">Liter</option>
+              <option value="piece">Buah</option>
             </SelectField>
           </div>
 
           <InputField
             label="Expired pada"
             id="expired_at"
-            type="text"
+            type="date"
             value={item.expired_at}
             onChange={handleChange}
             placeholder="cth: 25 Des 2024"
@@ -178,7 +189,10 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({ onBack, itemId }) =
       </AddItemForm>
 
       {isCameraOpen && (
-        <CameraModal onCapture={handlePhotoTaken} onClose={() => setIsCameraOpen(false)} />
+        <CameraModal
+          onCapture={handlePhotoTaken}
+          onClose={() => setIsCameraOpen(false)}
+        />
       )}
     </>
   );

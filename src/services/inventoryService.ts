@@ -22,7 +22,7 @@ const itemToFormData = (item: Omit<InventoryItem, 'id'>): URLSearchParams => {
   formData.append("photo", item.photo);
   formData.append("store_at", item.store_at);
   formData.append("unit", item.unit);
-  formData.append("expired_at", item.expired_at);
+  formData.append("expired_at", item.expired_at instanceof Date ? item.expired_at.toISOString() : String(item.expired_at));
   return formData;
 };
 

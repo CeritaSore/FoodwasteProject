@@ -3,6 +3,7 @@ import AppHeader from "../components/AppHeader";
 import PageHeader from "../components/PageHeader";
 import InputField from "../components/InputField";
 import SelectField from "../components/SelectField";
+import axios from "axios";
 
 interface AddShoppingItemProps {
   onBack: () => void;
@@ -10,7 +11,7 @@ interface AddShoppingItemProps {
   onOpenNotifications: () => void;
   itemId?: number; // untuk edit mode
 }
-
+const BASE_URL = "http://fajarseptianto.my.id/api/items/item";
 // ✅ Data dummy sementara untuk simulasi
 const dummyData = [
   { id: 1, name: "Beras", weight: "2", price: "28000", unit: "Kilogram" },
@@ -29,7 +30,7 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
     name: "",
     weight: "",
     price: "",
-    unit: "Kilogram",
+    unit: "kilogram",
   });
 
   const [loading, setLoading] = useState(isEditMode);
@@ -57,27 +58,30 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
   }, [isEditMode, itemId]);
 
   // 🔹 Handle input
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { id, value } = e.target;
     setItem((prev) => ({ ...prev, [id]: value }));
   };
 
   // 🔹 Simulasi submit tanpa request API
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      if (isEditMode) {
-        console.log("✅ Data berhasil diperbarui:", item);
-        alert("Data berhasil diperbarui (simulasi)!");
-      } else {
-        console.log("✅ Data baru disimpan:", item);
-        alert("Data berhasil disimpan (simulasi)!");
-      }
-      setIsSubmitting(false);
-      onBack();
-    }, 800);
+    // setTimeout(() => {
+    if (isEditMode && itemId) {
+      await axios.patch(`${BASE_URL}/${itemId}`, item);
+      alert("Data berhasil diperbarui!");
+    } else {
+      // console.log("✅ Data baru disimpan:", item);
+      await axios.post(BASE_URL, item);
+      alert("Data berhasil disimpan!");
+    }
+    setIsSubmitting(false);
+    // onBack();
+    // }, 800);
   };
 
   if (loading) {
@@ -90,7 +94,10 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
 
   return (
     <div className="p-5 w-full max-w-md mx-auto">
-      <AppHeader onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
+      <AppHeader
+        onOpenProfile={onOpenProfile}
+        onOpenNotifications={onOpenNotifications}
+      />
       <PageHeader
         title={isEditMode ? "Edit Belanjaan" : "Tambah Belanjaan"}
         onBack={onBack}
@@ -120,10 +127,10 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
             value={item.unit}
             onChange={handleChange}
           >
-            <option>Kilogram</option>
-            <option>Gram</option>
-            <option>Liter</option>
-            <option>Buah</option>
+            <option value="kilogram">Kilogram</option>
+            <option value="gram">Gram</option>
+            <option value="liter">Liter</option>
+            <option value="piece">Buah</option>
           </SelectField>
         </div>
 

@@ -30,7 +30,7 @@ export interface InventoryItem {
   photo: string;
   store_at: 'chiller' | 'freezer';
   unit: 'kilogram' | 'gram';
-  expired_at: string; // format: YYYY-MM-DD
+  expired_at: Date; // format: YYYY-MM-DD
 }
 
 export interface ShoppingItem {

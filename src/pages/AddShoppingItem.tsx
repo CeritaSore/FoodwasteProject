@@ -11,12 +11,8 @@ interface AddShoppingItemProps {
   onOpenNotifications: () => void;
   itemId?: number; // untuk edit mode
 }
+
 const BASE_URL = "http://fajarseptianto.my.id/api/items/item";
-// ✅ Data dummy sementara untuk simulasi
-const dummyData = [
-  { id: 1, name: "Beras", weight: "2", price: "28000", unit: "Kilogram" },
-  { id: 2, name: "Minyak", weight: "1", price: "15000", unit: "Liter" },
-];
 
 const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
   onBack,
@@ -36,24 +32,30 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
   const [loading, setLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🔹 Simulasi ambil data untuk edit
+  // 🔹 Ambil data dari API jika mode edit
   useEffect(() => {
     if (isEditMode && itemId) {
       setLoading(true);
-      setTimeout(() => {
-        const foundItem = dummyData.find((i) => i.id === itemId);
-        if (foundItem) {
-          setItem({
-            name: foundItem.name,
-            weight: foundItem.weight,
-            price: foundItem.price,
-            unit: foundItem.unit,
-          });
-        } else {
-          alert("Data tidak ditemukan (simulasi).");
-        }
-        setLoading(false);
-      }, 500);
+      axios
+        .get(`${BASE_URL}/${itemId}`)
+        .then((res) => {
+          const data = res.data?.data;
+          if (data) {
+            setItem({
+              name: data.name || "",
+              weight: data.weight || "",
+              price: data.price || "",
+              unit: data.unit || "kilogram",
+            });
+          } else {
+            alert("Data item tidak ditemukan.");
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Gagal memuat data:", err);
+          alert("Gagal memuat data item dari server.");
+        })
+        .finally(() => setLoading(false));
     }
   }, [isEditMode, itemId]);
 
@@ -65,23 +67,26 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
     setItem((prev) => ({ ...prev, [id]: value }));
   };
 
-  // 🔹 Simulasi submit tanpa request API
+  // 🔹 Submit form (Create / Update)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // setTimeout(() => {
-    if (isEditMode && itemId) {
-      await axios.patch(`${BASE_URL}/${itemId}`, item);
-      alert("Data berhasil diperbarui!");
-    } else {
-      // console.log("✅ Data baru disimpan:", item);
-      await axios.post(BASE_URL, item);
-      alert("Data berhasil disimpan!");
+    try {
+      if (isEditMode && itemId) {
+        await axios.patch(`${BASE_URL}/${itemId}`, item);
+        alert("✅ Data berhasil diperbarui!");
+      } else {
+        await axios.post(BASE_URL, item);
+        alert("✅ Data baru berhasil disimpan!");
+      }
+      onBack();
+    } catch (err) {
+      console.error("❌ Gagal menyimpan:", err);
+      alert("Terjadi kesalahan saat menyimpan data.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    // onBack();
-    // }, 800);
   };
 
   if (loading) {
@@ -149,7 +154,11 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
           disabled={isSubmitting}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-emerald-400 disabled:cursor-wait"
         >
-          {isSubmitting ? "Menyimpan..." : isEditMode ? "Update" : "Simpan"}
+          {isSubmitting
+            ? "Menyimpan..."
+            : isEditMode
+            ? "Update"
+            : "Simpan"}
         </button>
       </form>
     </div>

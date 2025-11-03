@@ -12,7 +12,7 @@ interface AddShoppingItemProps {
   onOpenNotifications: () => void;
 }
 
-const BASE_URL = "http://fajarseptianto.my.id/api/items";
+const BASE_URL = "http://fajarseptianto.my.id/api/items/item";
 
 const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
   onBack,
@@ -34,53 +34,32 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
   const [loading, setLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ FETCH DATA UNTUK EDIT MODE
+  // 🔹 Ambil data dari API jika mode edit
   useEffect(() => {
-    const fetchItemData = async () => {
-      if (!isEditMode || !id) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const response = await axios.get(`${BASE_URL}/item/${id}`);
-
-        const data = response.data?.data;
-        if (data) {
-          setItem({
-            name: data.name || "",
-            weight: data.weight?.toString() || "", // ✅ Convert ke string
-            price: data.price?.toString() || "", // ✅ Convert ke string
-            unit: data.unit || "kilogram",
-          });
-        } else {
-          console.warn("⚠️ Data tidak ditemukan dalam response");
-          alert("Data item tidak ditemukan.");
-        }
-      } catch (err) {
-        console.error("❌ Gagal memuat data:", err);
-        alert("Gagal memuat data item dari server.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchItemData();
-  }, [isEditMode, id]); // ✅ Dependency array
-
-  // ✅ NAVIGATION HANDLERS
-  const profile = () => {
-    navigate("/profileform");
-  };
-
-  const notification = () => {
-    navigate("/notification");
-  };
-
-  const back = () => {
-    navigate("/items");
-  };
+    if (isEditMode && itemId) {
+      setLoading(true);
+      axios
+        .get(`${BASE_URL}/${itemId}`)
+        .then((res) => {
+          const data = res.data?.data;
+          if (data) {
+            setItem({
+              name: data.name || "",
+              weight: data.weight || "",
+              price: data.price || "",
+              unit: data.unit || "kilogram",
+            });
+          } else {
+            alert("Data item tidak ditemukan.");
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Gagal memuat data:", err);
+          alert("Gagal memuat data item dari server.");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [isEditMode, itemId]);
 
   // ✅ HANDLE INPUT
   const handleChange = (
@@ -90,7 +69,7 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
     setItem((prev) => ({ ...prev, [id]: value }));
   };
 
-  // ✅ HANDLE SUBMIT
+  // 🔹 Submit form (Create / Update)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -103,37 +82,17 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
     setIsSubmitting(true);
 
     try {
-      // ✅ PREPARE DATA UNTUK API
-      const submitData = {
-        name: item.name.trim(),
-        weight: Number(item.weight),
-        price: Number(item.price),
-        unit: item.unit,
-      };
-
-      console.log("📤 Submitting data:", submitData);
-
-      if (isEditMode && id) {
-        // ✅ UPDATE EXISTING ITEM
-        await axios.patch(`${BASE_URL}/item/${id}`, submitData);
+      if (isEditMode && itemId) {
+        await axios.patch(`${BASE_URL}/${itemId}`, item);
         alert("✅ Data berhasil diperbarui!");
       } else {
-        // ✅ CREATE NEW ITEM
-        await axios.post(`${BASE_URL}/item`, submitData);
+        await axios.post(BASE_URL, item);
         alert("✅ Data baru berhasil disimpan!");
       }
-
-      // ✅ REDIRECT SETELAH SUKSES
-      back();
-    } catch (err: any) {
+      onBack();
+    } catch (err) {
       console.error("❌ Gagal menyimpan:", err);
-
-      // ✅ ERROR HANDLING YANG LEBIH BAIK
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        "Terjadi kesalahan saat menyimpan data.";
-      alert(`Gagal menyimpan: ${errorMessage}`);
+      alert("Terjadi kesalahan saat menyimpan data.");
     } finally {
       setIsSubmitting(false);
     }
@@ -222,8 +181,8 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
           {isSubmitting
             ? "Menyimpan..."
             : isEditMode
-            ? "Update Data"
-            : "Simpan Barang Baru"}
+            ? "Update"
+            : "Simpan"}
         </button>
       </form>
     </div>

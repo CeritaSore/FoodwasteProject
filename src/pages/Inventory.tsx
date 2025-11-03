@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
+import React, { useState, useEffect } from "react";
 import { View, InventoryItem } from "../types";
 import AppHeader from "../components/AppHeader";
 import PageHeader from "../components/PageHeader";
@@ -18,8 +18,10 @@ interface InventoryProps {
   inventory: InventoryItem[];
   isLoading: boolean;
 }
+
 const BASE_URL = "http://fajarseptianto.my.id/api/items/inventory";
 
+// ✅ PAKAI FUNCTION YANG SAMA
 const isBase64Image = (str: string | null | undefined): boolean =>
   typeof str === "string" && str.startsWith("data:image/");
 
@@ -35,6 +37,7 @@ const Inventory: React.FC<InventoryProps> = ({
   isLoading,
 }) => {
   const [localInventory, setLocalInventory] = useState<InventoryItem[]>([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -48,28 +51,22 @@ const Inventory: React.FC<InventoryProps> = ({
 
     fetchData();
   }, []);
-  inventory = localInventory;
+
+  // ✅ TIDAK PERLU ASSIGN LAGI, LANGSUNG PAKAI localInventory
+  const displayInventory =
+    localInventory.length > 0 ? localInventory : inventory;
+
   const navigate = useNavigate();
-  const home = () => {
-    navigate("/");
-  };
-  const profile = () => {
-    navigate("/profileform");
-  };
+  const home = () => navigate("/");
+  const profile = () => navigate("/profileform");
+  const notification = () => navigate("/notification");
+  const addInventory = () => navigate("/inventory/add");
 
-  const notification = () => {
-    navigate("/notification");
-  };
-
-  const addInventory = () => {
-    navigate("/inventory/add");
-  };
   const handleDelete = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
     try {
       await axios.delete(`${BASE_URL}/${id}`);
-      alert("data berhasil dihapus");
-      // notify parent and update local state
+      alert("Data berhasil dihapus");
       onDeleteItem?.(id);
       setLocalInventory((prev) => prev.filter((it) => it.id !== id));
     } catch (error) {
@@ -80,19 +77,24 @@ const Inventory: React.FC<InventoryProps> = ({
 
   const handleEdit = (e: React.MouseEvent, item: InventoryItem) => {
     e.stopPropagation();
-    navigate(`/inventory/detail/${item.id}`);
+    navigate(`/inventory/detail/${item.id}`, {
+      state: {
+        item,
+      },
+    });
   };
 
   return (
     <div className="p-5 w-full max-w-md mx-auto relative min-h-dvh">
       <AppHeader onOpenProfile={profile} onOpenNotifications={notification} />
       <PageHeader title="Simpanan kamu" onBack={home} />
+
       <div className="space-y-4 pb-24">
         {isLoading ? (
           <p className="text-center text-gray-500 animate-pulse">
             Loading inventory...
           </p>
-        ) : inventory.length === 0 ? (
+        ) : displayInventory.length === 0 ? (
           <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
             <p className="font-semibold text-gray-600">
               Inventori kamu kosong.
@@ -102,7 +104,7 @@ const Inventory: React.FC<InventoryProps> = ({
             </p>
           </div>
         ) : (
-          inventory.map((item) => (
+          displayInventory.map((item) => (
             <div
               key={item.id}
               onClick={() => onSelectItem(item)}
@@ -166,6 +168,7 @@ const Inventory: React.FC<InventoryProps> = ({
           ))
         )}
       </div>
+
       <FloatingActionButton icon="plus" onClick={addInventory} />
     </div>
   );

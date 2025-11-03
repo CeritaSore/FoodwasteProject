@@ -1,7 +1,8 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { UserProfile } from "../types";
 import Icon from "../components/Icon";
-import { fetchFirstUser, createUserProfile, updateUserProfile } from "../services/userService";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileFormProps {
   onProfileSubmit: (profile: UserProfile) => void;
@@ -10,12 +11,16 @@ interface ProfileFormProps {
   onClose?: () => void;
 }
 
+const BASE_URL = "http://fajarseptianto.my.id/api/items/users";
+
 const ProfileForm: React.FC<ProfileFormProps> = ({
   onProfileSubmit,
   initialProfileData = null,
   isModal = false,
   onClose,
 }) => {
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState<UserProfile>({
     id: undefined,
     fullname: "",
@@ -31,13 +36,98 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
+  // ✅ FETCH FIRST USER - langsung di component
+  const fetchFirstUser = async (): Promise<UserProfile | null> => {
+    try {
+      console.log("🔄 Fetching users from:", BASE_URL);
+      const response = await axios.get(BASE_URL);
+      console.log("📦 Users response:", response.data);
+
+      const data = response.data?.data || response.data || [];
+      if (data && data.length > 0) {
+        console.log("✅ Found user:", data[0]);
+        return data[0];
+      }
+      console.log("ℹ️ No users found");
+      return null;
+    } catch (error: any) {
+      console.error("❌ Error fetching users:", error);
+      throw new Error(`Failed to fetch users: ${error.message}`);
+    }
+  };
+
+  // ✅ CREATE USER PROFILE - langsung di component
+  const createUserProfile = async (
+    profile: UserProfile
+  ): Promise<UserProfile> => {
+    try {
+      const jsonData = {
+        fullname: profile.fullname,
+        memberoffamily: Number(profile.memberoffamily) || 0,
+        height: Number(profile.height) || 0,
+        weight: Number(profile.weight) || 0,
+        ages: Number(profile.ages) || 0,
+        dailyactivities: profile.dailyactivities,
+        sex: profile.sex,
+        dietpreference: profile.dietpreference,
+      };
+
+      console.log("📤 Creating profile:", jsonData);
+
+      const response = await axios.post(BASE_URL, jsonData);
+      console.log("✅ Profile created:", response.data);
+
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error("❌ Error creating profile:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error(`Failed to create profile: ${error.message}`);
+    }
+  };
+
+  // ✅ UPDATE USER PROFILE - langsung di component
+  const updateUserProfile = async (
+    profile: UserProfile
+  ): Promise<UserProfile> => {
+    try {
+      if (!profile.id) {
+        throw new Error("User ID is required for updating.");
+      }
+
+      const jsonData = {
+        fullname: profile.fullname,
+        memberoffamily: Number(profile.memberoffamily) || 0,
+        height: Number(profile.height) || 0,
+        weight: Number(profile.weight) || 0,
+        ages: Number(profile.ages) || 0,
+        dailyactivities: profile.dailyactivities,
+        sex: profile.sex,
+        dietpreference: profile.dietpreference,
+      };
+
+      console.log("📤 Updating profile ID:", profile.id, "Data:", jsonData);
+
+      const response = await axios.patch(`${BASE_URL}/${profile.id}`, jsonData);
+      console.log("✅ Profile updated:", response.data);
+
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error("❌ Error updating profile:", error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error(`Failed to update profile: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
     const loadUser = async () => {
       setLoading(true);
       try {
         const user = await fetchFirstUser();
         if (user) {
-          // Ensure all fields are strings for form compatibility
           setProfile({
             id: user.id,
             fullname: user.fullname ?? "",
@@ -66,7 +156,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }
   }, [initialProfileData]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { id, value } = e.target;
     setProfile((prev) => ({ ...prev, [id]: value }));
   };
@@ -76,22 +168,30 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     setSubmitting(true);
     setMessage("");
 
+    console.log("🔄 Starting submit with data:", profile);
+
     try {
       let responseData;
       if (profile.id) {
+        console.log("📝 Update mode, ID:", profile.id);
         responseData = await updateUserProfile(profile);
         setMessage("Profile updated successfully!");
       } else {
+        console.log("🆕 Create mode");
         responseData = await createUserProfile(profile);
         setMessage("Profile created successfully!");
       }
 
+      console.log("✅ Submit successful:", responseData);
+
       if (responseData) {
-        onProfileSubmit(responseData);
+        navigate("/");
       }
-    } catch (err) {
-      console.error("Submit error:", err);
-      setMessage("Failed to save profile. Please check your connection and try again.");
+    } catch (err: any) {
+      console.error("❌ Submit error:", err);
+      setMessage(
+        `Failed to save profile: ${err.message}. Please check your connection and try again.`
+      );
     } finally {
       setSubmitting(false);
     }

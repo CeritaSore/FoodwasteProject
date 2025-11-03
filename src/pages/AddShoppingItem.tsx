@@ -4,60 +4,85 @@ import PageHeader from "../components/PageHeader";
 import InputField from "../components/InputField";
 import SelectField from "../components/SelectField";
 import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface AddShoppingItemProps {
   onBack: () => void;
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
-  itemId?: number; // untuk edit mode
 }
-const BASE_URL = "http://fajarseptianto.my.id/api/items/item";
-// ✅ Data dummy sementara untuk simulasi
-const dummyData = [
-  { id: 1, name: "Beras", weight: "2", price: "28000", unit: "Kilogram" },
-  { id: 2, name: "Minyak", weight: "1", price: "15000", unit: "Liter" },
-];
+
+const BASE_URL = "http://fajarseptianto.my.id/api/items";
 
 const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
   onBack,
   onOpenProfile,
   onOpenNotifications,
-  itemId,
 }) => {
-  const isEditMode = !!itemId;
+  const { id } = useParams<{ id: string }>(); // ✅ Gunakan destructuring
+  const isEditMode = !!id; // ✅ Gunakan id dari URL params
+
+  const navigate = useNavigate();
 
   const [item, setItem] = useState({
     name: "",
     weight: "",
     price: "",
-    unit: "kilogram",
+    unit: "kilogram", // ✅ Default value
   });
 
   const [loading, setLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🔹 Simulasi ambil data untuk edit
+  // ✅ FETCH DATA UNTUK EDIT MODE
   useEffect(() => {
-    if (isEditMode && itemId) {
-      setLoading(true);
-      setTimeout(() => {
-        const foundItem = dummyData.find((i) => i.id === itemId);
-        if (foundItem) {
+    const fetchItemData = async () => {
+      if (!isEditMode || !id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await axios.get(`${BASE_URL}/item/${id}`);
+
+        const data = response.data?.data;
+        if (data) {
           setItem({
-            name: foundItem.name,
-            weight: foundItem.weight,
-            price: foundItem.price,
-            unit: foundItem.unit,
+            name: data.name || "",
+            weight: data.weight?.toString() || "", // ✅ Convert ke string
+            price: data.price?.toString() || "", // ✅ Convert ke string
+            unit: data.unit || "kilogram",
           });
         } else {
-          alert("Data tidak ditemukan (simulasi).");
+          console.warn("⚠️ Data tidak ditemukan dalam response");
+          alert("Data item tidak ditemukan.");
         }
+      } catch (err) {
+        console.error("❌ Gagal memuat data:", err);
+        alert("Gagal memuat data item dari server.");
+      } finally {
         setLoading(false);
-      }, 500);
-    }
-  }, [isEditMode, itemId]);
+      }
+    };
 
-  // 🔹 Handle input
+    fetchItemData();
+  }, [isEditMode, id]); // ✅ Dependency array
+
+  // ✅ NAVIGATION HANDLERS
+  const profile = () => {
+    navigate("/profileform");
+  };
+
+  const notification = () => {
+    navigate("/notification");
+  };
+
+  const back = () => {
+    navigate("/items");
+  };
+
+  // ✅ HANDLE INPUT
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -65,42 +90,80 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
     setItem((prev) => ({ ...prev, [id]: value }));
   };
 
-  // 🔹 Simulasi submit tanpa request API
+  // ✅ HANDLE SUBMIT
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // ✅ VALIDASI INPUT
+    if (!item.name.trim() || !item.weight || !item.price) {
+      alert("Harap isi semua field yang wajib!");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // setTimeout(() => {
-    if (isEditMode && itemId) {
-      await axios.patch(`${BASE_URL}/${itemId}`, item);
-      alert("Data berhasil diperbarui!");
-    } else {
-      // console.log("✅ Data baru disimpan:", item);
-      await axios.post(BASE_URL, item);
-      alert("Data berhasil disimpan!");
+    try {
+      // ✅ PREPARE DATA UNTUK API
+      const submitData = {
+        name: item.name.trim(),
+        weight: Number(item.weight),
+        price: Number(item.price),
+        unit: item.unit,
+      };
+
+      console.log("📤 Submitting data:", submitData);
+
+      if (isEditMode && id) {
+        // ✅ UPDATE EXISTING ITEM
+        await axios.patch(`${BASE_URL}/item/${id}`, submitData);
+        alert("✅ Data berhasil diperbarui!");
+      } else {
+        // ✅ CREATE NEW ITEM
+        await axios.post(`${BASE_URL}/item`, submitData);
+        alert("✅ Data baru berhasil disimpan!");
+      }
+
+      // ✅ REDIRECT SETELAH SUKSES
+      back();
+    } catch (err: any) {
+      console.error("❌ Gagal menyimpan:", err);
+
+      // ✅ ERROR HANDLING YANG LEBIH BAIK
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Terjadi kesalahan saat menyimpan data.";
+      alert(`Gagal menyimpan: ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    // onBack();
-    // }, 800);
   };
 
+  // ✅ LOADING STATE
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Memuat data item...
+      <div className="p-5 w-full max-w-md mx-auto">
+        <AppHeader onOpenProfile={profile} onOpenNotifications={notification} />
+        <PageHeader
+          title={isEditMode ? "Edit Belanjaan" : "Tambah Belanjaan"}
+          onBack={back}
+        />
+        <div className="flex items-center justify-center h-64 text-gray-500">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
+            Memuat data item...
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-5 w-full max-w-md mx-auto">
-      <AppHeader
-        onOpenProfile={onOpenProfile}
-        onOpenNotifications={onOpenNotifications}
-      />
+      <AppHeader onOpenProfile={profile} onOpenNotifications={notification} />
       <PageHeader
         title={isEditMode ? "Edit Belanjaan" : "Tambah Belanjaan"}
-        onBack={onBack}
+        onBack={back}
       />
 
       <form onSubmit={handleSubmit} className="space-y-6 w-full mt-8">
@@ -109,6 +172,7 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
           id="name"
           value={item.name}
           onChange={handleChange}
+          placeholder="Contoh: Beras, Gula, Minyak Goreng"
           required
         />
 
@@ -119,6 +183,9 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
             type="number"
             value={item.weight}
             onChange={handleChange}
+            placeholder="0"
+            min="0"
+            step="0.1"
             required
           />
           <SelectField
@@ -126,7 +193,9 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
             id="unit"
             value={item.unit}
             onChange={handleChange}
+            required
           >
+            <option value="">Pilih Satuan</option>
             <option value="kilogram">Kilogram</option>
             <option value="gram">Gram</option>
             <option value="liter">Liter</option>
@@ -140,16 +209,21 @@ const AddShoppingItem: React.FC<AddShoppingItemProps> = ({
           type="number"
           value={item.price}
           onChange={handleChange}
-          placeholder="contoh: 15000"
+          placeholder="Contoh: 15000"
+          min="0"
           required
         />
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-emerald-400 disabled:cursor-wait"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all duration-200 disabled:bg-emerald-400 disabled:cursor-not-allowed disabled:transform-none"
         >
-          {isSubmitting ? "Menyimpan..." : isEditMode ? "Update" : "Simpan"}
+          {isSubmitting
+            ? "Menyimpan..."
+            : isEditMode
+            ? "Update Data"
+            : "Simpan Barang Baru"}
         </button>
       </form>
     </div>

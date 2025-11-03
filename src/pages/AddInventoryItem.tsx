@@ -5,6 +5,7 @@ import InputField from "../components/InputField";
 import SelectField from "../components/SelectField";
 import CameraModal from "../components/CameraModal";
 import { InventoryItem } from "../types";
+import { useNavigate } from "react-router-dom";
 
 interface AddInventoryItemProps {
   onBack: () => void;
@@ -18,7 +19,17 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({
   itemId,
 }) => {
   const isEditMode = !!itemId;
+  const navigate = useNavigate();
+  const back = () => {
+    navigate("/inventory");
+  };
+  const profile = () => {
+    navigate("/profileform");
+  };
 
+  const notification = () => {
+    navigate("/notification");
+  };
   const [item, setItem] = useState({
     name: "",
     store_at: "chiller",
@@ -111,7 +122,9 @@ const AddInventoryItem: React.FC<AddInventoryItemProps> = ({
   return (
     <>
       <AddItemForm
-        onBack={onBack}
+        onBack={back}
+        onOpenNotifications={notification}
+        onOpenProfile={profile}
         title={isEditMode ? "Edit Simpanan" : "Tambah Simpanan"}
         imagePreview={item.photo}
         onImageButtonClick={() => setIsCameraOpen(true)}
